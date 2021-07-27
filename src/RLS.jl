@@ -1,6 +1,3 @@
-using Base: AbstractFloat
-using LinearAlgebra
-
 function RLS(y::AbstractVector{TYPE}, x::AbstractMatrix{TYPE}; λ = 0.99) where TYPE <: AbstractFloat
 
     @assert λ <= 1 && λ > 0 "Forgetting factor, λ, must be ]0;1]."
