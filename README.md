@@ -1,1 +1,2 @@
 # RecursiveLeastSquares
+# RecursiveLeastSquares.jl
