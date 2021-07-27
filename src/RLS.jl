@@ -23,16 +23,3 @@ function RLS(y::AbstractVector{TYPE}, x::AbstractMatrix{TYPE}; λ = 0.99) where 
     end
     return (coefficients = w, covariance = P, errors = err, predictions = pred)
 end
-
-T = 1000;
-x = hcat(ones(T), sin.((1:T) * 0.01));
-b = hcat(repeat([1, 1, 1, 1], inner = 250), repeat([-1], 1000));
-y = vec(sum(x .* b; dims = 2)) .+ randn(T) * 0.25;
-
-model = RLS(y, x; λ = 0.98)
-
-using Plots, StatsPlots
-plot(model.coefficients, color = [:black :red])
-plot!(b, color = [:black :red], linestyle = :dash)
-plot(y)
-plot!(model.predictions)
