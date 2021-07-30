@@ -1,11 +1,18 @@
-using Base: Real
 abstract type Kernel end
+
+mutable struct WhiteNoise{T} <: Kernel where T<:Real
+    σ::T
+    function Noise(σ::T) where T<:Real
+        @assert σ > 0 "The output variance, σ, must be positive."
+        new{T}(σ)
+    end
+end
 
 mutable struct Linear{T} <: Kernel where T<:Real
     σ::T
     function Linear(σ::T) where T<:Real
         @assert σ > 0 "The output variance, σ, must be positive."
-        new(σ)
+        new{T}(σ)
     end
 end
 
@@ -15,7 +22,7 @@ mutable struct RBF{T} <: Kernel where T<:Real
     function RBF(l::T, σ::T) where T<:Real
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
-        new(l, σ)
+        new{T}(l, σ)
     end
 end
 
@@ -27,7 +34,7 @@ mutable struct RationalQuadratic{T} <: Kernel where T<:Real
         @assert a > 0 "The relative weighting of different lengthscales, a, must be positive."
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
-        new(a, l, σ)
+        new{T}(a, l, σ)
     end
 end
 
@@ -39,6 +46,18 @@ mutable struct Periodic{T} <: Kernel where T<:Real
         @assert p > 0 "The period, p, must be positive."
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
-        new(p, l, σ)
+        new{T}(p, l, σ)
+    end
+end
+
+mutable struct LocallyPeriodic{T} <: Kernel where T<:Real
+    p::T
+    l::T
+    σ::T
+    function LocallyPeriodic(p::T, l::T, σ::T) where T<:Real
+        @assert p > 0 "The period, p, must be positive."
+        @assert σ > 0 "The output variance, σ, must be positive."
+        @assert l > 0 "The lengthscale, l, must be positive."
+        new{T}(p, l, σ)
     end
 end

@@ -1,4 +1,4 @@
-function KRLS(y::Vector{TYPE}, x::Matrix{TYPE}, kerneltype::Kernel; λ = 0.99, s2n = 1.0) where TYPE <: AbstractFloat
+function KRLS(y::Vector{TYPE}, x::Matrix{TYPE}, kernel_struct::Kernel; λ = 0.99, s2n = 1.0) where TYPE <: AbstractFloat
 
     @assert λ <= 1 && λ > 0 "Forgetting factor, λ, must be ]0;1]."
 
@@ -7,7 +7,7 @@ function KRLS(y::Vector{TYPE}, x::Matrix{TYPE}, kerneltype::Kernel; λ = 0.99, s
     err  = zeros(T)
 
     # Initialization
-    k̄ = kernel(x[1, :], kerneltype)[1] # scalar
+    k̄ = kernel(x[1, :], kernel_struct)[1] # scalar
     μ = [y[1] * k̄]                      # vector
     Σ = k̄ - k̄^2 / (s2n + k̄)             # scalar
     Q = 1/k̄                             # scalar
@@ -18,11 +18,10 @@ function KRLS(y::Vector{TYPE}, x::Matrix{TYPE}, kerneltype::Kernel; λ = 0.99, s
     err[1] = y[1]
 
     for t in 2:T
-        #println("t = ", t)
+
         # Kernel
-        k̄ = kernel(x[t, :], kerneltype)[1]
-        K = kernel(x[1:t-1, :], kerneltype)
-        k = kernel(x[1:t-1, :], reshape(x[t, :], 1, D), kerneltype)
+        k̄ = kernel(x[t, :], kernel_struct)[1]
+        k = kernel(x[1:t-1, :], reshape(x[t, :], 1, D), kernel_struct)
 
         # Predict
         q = vec(Q * k)
