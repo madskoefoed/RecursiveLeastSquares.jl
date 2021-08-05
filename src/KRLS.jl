@@ -17,12 +17,15 @@ function KRLS(y::FIVector,
     xb = x[basis, :]
 
     # Initialization
-    ktt = kernel(x[[1], :], kernel_struct)[1] # scalar
+    ktt = kernel(x[[1], :], kernel_struct)[1]
     ktt = ktt + jitter
-    μ = [y[1] * ktt]  / (s2n + ktt)           # predictive mean at time 1
-    Σ = ktt - ktt^2 / (s2n + ktt)             # scalar
-    Q = 1/ktt                                 # scalar
-    σ²[1] = y[1]^2 / (s2n + ktt) + s2n        # predictive variance at time 1
+    μ = [y[1] * ktt]  / (s2n + ktt) # predictive mean at time 1
+    Σ = ktt - ktt^2 / (s2n + ktt)
+    Q = 1/ktt
+    s0n = y[1]^2 / (s2n + ktt)
+    s0d = 1.0
+    s02 = s0n / s0d
+    σ²[1] = s02 * s2n              # predictive variance at time 1
 
     for t in 2:T
         # Kernel
@@ -49,20 +52,42 @@ function KRLS(y::FIVector,
         s2y = s2n + s2f
 
         ŷ[t]  = ȳ
-        σ²[t] = s2y
+        σ²[t] = s2y * s02
 
         # Get posteriors of N(f|μ, Σ)
+        p = vcat(q, [-1.0])
+        Q = hcat(vcat(Q, zeros(1, t-1)), zeros(t, 1)) + p * p' / γ²
+
         push!(μ, ȳ)
-        μ = μ + (y[t] - ȳ)/s2y * vcat(h, s2f)
-        s = repeat(vcat(h, s2f), 1, 1)
+        p = vcat(h, s2f)
+        μ = μ + (y[t] - ȳ)/s2y * p
+        s = reshape(p, :, 1)
         Σ = hcat(vcat(Σ, h'), s)
-        Σ = Σ - (s * s') / s2y
-        s = vcat(q, [-1.0])
-        Q = hcat(vcat(Q, zeros(1, t-1)), zeros(t, 1)) + s * s' / γ²
+        Σ = Σ - (p * p') / s2y
         
         # Dictionary update
         push!(basis, t)
         xb = x[basis, :]
+
+        # Estimate of s02 via Maximum Likelihood
+        s0n = s0n + λ * (y[t] - ȳ) / s2y
+        s0d = s0d + λ
+        s02 = s0n / s0d
+
+        # Delete a basis
+        if length(basis) > M || γ² < jitter
+            if γ² < jitter
+                @assert γ² < jitter/10 "Numerical roundoff error too high; you should increase jitter noise."
+                criterium = ones(1, length(basis))
+                criterium[1, end] = 0.0
+            else
+                # MSE pruning criterion
+                errors = (Q * μ) ./ diag(Q)
+                criterium = abs.(errors)
+            end
+            
+        end
+
     end
     return (predictions = ŷ, variances = σ², basis = basis)
 end
