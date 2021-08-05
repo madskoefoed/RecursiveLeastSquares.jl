@@ -1,17 +1,10 @@
-function kernel(x::Matrix{TYPE}, x₀::Matrix{TYPE}, kernel_struct::Kernel) where TYPE <: AbstractFloat
+function kernel(x::FIMatrix, x₀::FIMatrix, kernel_struct::Kernel)
     @assert size(x, 2) == size(x₀, 2) "The number of columns of x and x₀ do not match."
     # Dispatch to kernel
     K = kernel_calculation(x, x₀, kernel_struct::Kernel)
     return K
 end
-kernel(x::Matrix{TYPE}, kernel_struct::Kernel) where TYPE <: AbstractFloat = kernel(x, x, kernel_struct)
-kernel(x::Vector{TYPE}, kernel_struct::Kernel) where TYPE <: AbstractFloat = kernel(reshape(x, 1, length(x)), reshape(x, 1, length(x)), kernel_struct)
-
-# White Noise
-function kernel_calculation(x, x₀, k::WhiteNoise)
-    K = [i1 == i2 ? 1.0 : 0.0 for i1 in 1:size(x, 1), i2 in 1:size(x₀, 1)]
-    return K * k.σ
-end
+kernel(x::FIMatrix, kernel_struct::Kernel) = kernel(x, x, kernel_struct)
 
 # Linear
 function kernel_calculation(x, x₀, k::Linear)

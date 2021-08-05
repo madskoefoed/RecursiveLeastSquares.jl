@@ -1,63 +1,55 @@
 abstract type Kernel end
 
-mutable struct WhiteNoise{T} <: Kernel where T<:Real
-    σ::T
-    function Noise(σ::T) where T<:Real
+mutable struct Linear{FI} <: Kernel
+    σ::FI
+    function Linear(σ::FI)
         @assert σ > 0 "The output variance, σ, must be positive."
-        new{T}(σ)
+        new{FI}(σ)
     end
 end
 
-mutable struct Linear{T} <: Kernel where T<:Real
-    σ::T
-    function Linear(σ::T) where T<:Real
-        @assert σ > 0 "The output variance, σ, must be positive."
-        new{T}(σ)
-    end
-end
-
-mutable struct RBF{T} <: Kernel where T<:Real
-    l::T
-    σ::T
-    function RBF(l::T, σ::T) where T<:Real
+mutable struct RBF{FI} <: Kernel
+    l::FI
+    σ::FI
+    function RBF(l::FI, σ::FI)
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
-        new{T}(l, σ)
+        new{FI}(l, σ)
     end
 end
 
-mutable struct RationalQuadratic{T} <: Kernel where T<:Real
-    a::T
-    l::T
-    σ::T
-    function RationalQuadratic(a::T, l::T, σ::T) where T<:Real
+mutable struct RationalQuadratic{FI} <: Kernel
+    a::FI
+    l::FI
+    σ::FI
+    function RationalQuadratic(a::FI, l::FI, σ::FI)
         @assert a > 0 "The relative weighting of different lengthscales, a, must be positive."
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
-        new{T}(a, l, σ)
+        new{FI}(a, l, σ)
     end
 end
 
-mutable struct Periodic{T} <: Kernel where T<:Real
-    p::T
-    l::T
-    σ::T
-    function Periodic(p::T, l::T, σ::T) where T<:Real
+mutable struct Periodic{FI} <: Kernel
+    p::FI
+    l::FI
+    σ::FI
+    function Periodic(p::FI, l::FI, σ::FI)
         @assert p > 0 "The period, p, must be positive."
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
-        new{T}(p, l, σ)
+        new{FI}(p, l, σ)
     end
 end
 
-mutable struct LocallyPeriodic{T} <: Kernel where T<:Real
-    p::T
-    l::T
-    σ::T
-    function LocallyPeriodic(p::T, l::T, σ::T) where T<:Real
+mutable struct LocallyPeriodic{FI} <: Kernel
+    p::FI
+    l::FI
+    σ::FI
+    function LocallyPeriodic(p::FI, l::FI, σ::FI)
         @assert p > 0 "The period, p, must be positive."
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
-        new{T}(p, l, σ)
+        new{FI}(p, l, σ)
     end
 end
