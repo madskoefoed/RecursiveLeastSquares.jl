@@ -17,8 +17,7 @@ function KRLS(y::FIVector,
     xb = x[basis, :]
 
     # Initialization
-    ktt = kernel(x[[1], :], kernel_struct)[1]
-    ktt = ktt + jitter
+    ktt = kernel(x[[1], :], kernel_struct)[1] + jitter
     μ = [y[1] * ktt]  / (s2n + ktt) # predictive mean at time 1
     Σ = ktt - ktt^2 / (s2n + ktt)
     Q = 1/ktt
@@ -26,6 +25,7 @@ function KRLS(y::FIVector,
     s0d = 1.0
     s02 = s0n / s0d
     σ²[1] = s02 * s2n              # predictive variance at time 1
+    m = 1
 
     for t in 2:T
         # Kernel
@@ -34,8 +34,8 @@ function KRLS(y::FIVector,
 
         # Forget
         # B2P - Back 2 Prior
-        #Σ = Σ * λ .+ kernel(xb, kernel_struct) * (1 - λ)
-        #μ = sqrt(λ) * μ
+        Σ = Σ * λ .+ kernel(xb, kernel_struct) * (1 - λ)
+        μ = sqrt(λ) * μ
         # Uncertainty injection
         #Σ = Σ / λ
 
@@ -45,10 +45,10 @@ function KRLS(y::FIVector,
 
         # Predictive variance
         γ² = ktt - dot(kbt, q)
-        #γ² < 0.0 && (γ² = jitter) # Ensure that gamma squared is not negative
+        γ² < 0.0 && (γ² = jitter) # Ensure that gamma squared is not negative
         h = vec(Σ * q)
         s2f = γ² + dot(q, h)
-        #s2f < 0.0 && (s2f = jitter) # Ensure that s2f is not negative
+        s2f < 0.0 && (s2f = jitter) # Ensure that s2f is not negative
         s2y = s2n + s2f
 
         ŷ[t]  = ȳ
@@ -68,6 +68,7 @@ function KRLS(y::FIVector,
         # Dictionary update
         push!(basis, t)
         xb = x[basis, :]
+        m = m + 1
 
         # Estimate of s02 via Maximum Likelihood
         s0n = s0n + λ * (y[t] - ȳ) / s2y
@@ -85,11 +86,24 @@ function KRLS(y::FIVector,
                 errors = (Q * μ) ./ diag(Q)
                 criterium = abs.(errors)
             end
-            
+            println("Criterium: ", criterium)
+            dd, r = findmin(criterium)
+
+            # Remove element r
+            d  = setdiff(1:m, r)
+            Qs = Q[d, :]
+            qs = Q[r, r]
+            Q  = Q[d, d]
+            Q  = Q - (Qs * Qs')/qs
+            μ  = μ[d]
+            Σ  = Σ[d, d]
+            m  = m - 1
+            xb = xb[d, :]
+            basis = basis[d]
         end
 
     end
-    return (predictions = ŷ, variances = σ², basis = basis)
+    return (predictions = ŷ, variances = σ², basis = basis, μ = μ, Σ = Σ, Q = Q)
 end
 
 function KRLS(y::FIVector,
