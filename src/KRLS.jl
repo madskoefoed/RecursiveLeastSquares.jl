@@ -4,23 +4,25 @@ function KRLS(y::FIVector,
               M::Integer = size(y),
               λ::FI = 1,
               s2n::FI = 1,
+              forgetting::String = "B2P",
               jitter::AbstractFloat = 1e-8)
 
+    @assert s2n > 0 "Observation noise (regularization), s2n, must be strictly positive."
     @assert λ <= 1 && λ > 0 "Forgetting factor, λ, must be ]0;1]."
     @assert M <= length(y) && M > 0 "Budget size, M, must be [1;T]."
+    @assert (forgetting == "B2P" || forgetting == "UI") "Input, forget, must be B2P or UI."
 
     T  = length(y)
     ŷ  = zeros(T)
     σ² = zeros(T)
-    basis = Int[]
-    push!(basis, 1)
+    basis = [1]
     xb = x[basis, :]
 
     # Initialization
-    ktt = kernel(x[[1], :], kernel_struct)[1] + jitter
+    ktt = kernel(x[1:1, :], kernel_struct)[1] + jitter
     μ = [y[1] * ktt]  / (s2n + ktt) # predictive mean at time 1
     Σ = ktt - ktt^2 / (s2n + ktt)
-    Q = 1/ktt
+    Q = reshape([1/ktt], 1, 1)
     s0n = y[1]^2 / (s2n + ktt)
     s0d = 1.0
     s02 = s0n / s0d
@@ -28,36 +30,41 @@ function KRLS(y::FIVector,
     m = 1
 
     for t in 2:T
-        # Kernel
-        ktt = kernel(x[[t], :], kernel_struct)[1] + jitter
-        kbt = kernel(xb, x[[t], :], kernel_struct)
-
+        #println("Iter: ", t)
         # Forget
-        # B2P - Back 2 Prior
-        Σ = Σ * λ .+ kernel(xb, kernel_struct) * (1 - λ)
-        μ = sqrt(λ) * μ
-        # Uncertainty injection
-        #Σ = Σ / λ
+        forget!(μ, Σ, λ, kernel(xb, kernel_struct), forgetting)
+
+        ktt = kernel(x[t:t, :], kernel_struct)[1] + jitter
+        kbt = kernel(xb, x[t:t, :], kernel_struct)
+
+        q = vec(Q * kbt)
+        h = vec(Σ * q)
+
+        # Projection uncertainty
+        γ² = ktt - dot(kbt, q)
+        #γ² < 0.0 && (γ² = jitter) # Ensure that gamma squared is not negative
+        
+        # Noiseless prediction variance
+        s2f = γ² + dot(q, h)
+        #s2f < 0.0 && (s2f = jitter) # Ensure that s2f is not negative
 
         # Predictive mean
-        q = vec(Q * kbt)
         ȳ = dot(q, μ)
 
         # Predictive variance
-        γ² = ktt - dot(kbt, q)
-        γ² < 0.0 && (γ² = jitter) # Ensure that gamma squared is not negative
-        h = vec(Σ * q)
-        s2f = γ² + dot(q, h)
-        s2f < 0.0 && (s2f = jitter) # Ensure that s2f is not negative
         s2y = s2n + s2f
 
         ŷ[t]  = ȳ
         σ²[t] = s2y * s02
 
-        # Get posteriors of N(f|μ, Σ)
-        p = vcat(q, [-1.0])
-        Q = hcat(vcat(Q, zeros(1, t-1)), zeros(t, 1)) + p * p' / γ²
+        # Observe yₜ
 
+        # Estimate of s02 via Maximum Likelihood
+        s0n = s0n + λ * (y[t] - ȳ) / s2y
+        s0d = s0d + λ
+        s02 = s0n / s0d
+
+        # Get posteriors of N(f|μ, Σ)
         push!(μ, ȳ)
         p = vcat(h, s2f)
         μ = μ + (y[t] - ȳ)/s2y * p
@@ -65,45 +72,44 @@ function KRLS(y::FIVector,
         Σ = hcat(vcat(Σ, h'), s)
         Σ = Σ - (p * p') / s2y
         
-        # Dictionary update
-        push!(basis, t)
-        xb = x[basis, :]
-        m = m + 1
+        # Ensure that gamma is not too small
+        if γ² < (10*eps())
+            μ  = μ[1:end-1]
+            Σ  = Σ[1:end-1, 1:end-1]
+        else
+            # Dictionary update
+            push!(basis, t)
+            xb = x[basis, :]
+            m = m + 1
 
-        # Estimate of s02 via Maximum Likelihood
-        s0n = s0n + λ * (y[t] - ȳ) / s2y
-        s0d = s0d + λ
-        s02 = s0n / s0d
-
-        # Delete a basis
-        if length(basis) > M || γ² < jitter
-            if γ² < jitter
-                @assert γ² < jitter/10 "Numerical roundoff error too high; you should increase jitter noise."
-                criterium = ones(1, length(basis))
-                criterium[1, end] = 0.0
-            else
+            p = vcat(q, [-1.0])
+            Q = hcat(vcat(Q, zeros(1, m - 1)), zeros(m, 1)) + p * p' / γ²
+            
+            if m > M
                 # MSE pruning criterion
-                errors = (Q * μ) ./ diag(Q)
-                criterium = abs.(errors)
-            end
-            println("Criterium: ", criterium)
-            dd, r = findmin(criterium)
+                errors = ((Q * μ) ./ diag(Q)).^2
+                dd, r = findmin(errors)
 
-            # Remove element r
-            d  = setdiff(1:m, r)
-            Qs = Q[d, :]
-            qs = Q[r, r]
-            Q  = Q[d, d]
-            Q  = Q - (Qs * Qs')/qs
-            μ  = μ[d]
-            Σ  = Σ[d, d]
-            m  = m - 1
-            xb = xb[d, :]
-            basis = basis[d]
+                # Remove element r
+                d  = setdiff(1:m, r)
+                Qs = Q[d, :]
+                qs = Q[r, r]
+                Q  = Q[d, d]
+                Q  = Q - (Qs * Qs')/qs
+                μ  = μ[d]
+                Σ  = Σ[d, d]
+                m  = m - 1
+                xb = xb[d, :]
+                basis = basis[d]
+            end
         end
 
+        if t == T
+            #println(kernel(xb, x[t:t, :], kernel_struct))
+            #println("Mu: ", ȳ)
+        end
     end
-    return (predictions = ŷ, variances = σ², basis = basis, μ = μ, Σ = Σ, Q = Q)
+    return (predictions = ŷ, variances = σ², basis = basis, xb = xb, μ = μ, Σ = Σ, Q = Q)
 end
 
 function KRLS(y::FIVector,
@@ -112,6 +118,21 @@ function KRLS(y::FIVector,
               M::Integer = size(y),
               λ::FI = 1,
               s2n::FI = 1,
+              forgetting::String = "B2P",
               jitter::AbstractFloat = 1e-8)
-    KRLS(y, reshape(x, :, 1), kernel_struct, M, λ, s2n, jitter)
+    KRLS(y, reshape(x, :, 1), kernel_struct, M, λ, s2n, forgetting, jitter)
+end
+
+function forget!(μ, Σ, λ, kb, forgetting)
+    if forgetting == "B2P" 
+        Σ = Σ * λ .+ kb * (1 - λ)
+        μ = sqrt(λ) * μ
+    elseif forgetting == "UI"
+        Σ = Σ / λ
+    end
+end
+
+function predictive_mean(μ::Vector, Q::Matrix, x::FIMatrix, xb::FIMatrix, kernel_struct::Kernel)
+    ȳ = kernel(xb, x, kernel_struct)' * Q * μ
+    return ȳ
 end

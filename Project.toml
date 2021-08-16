@@ -3,6 +3,10 @@ uuid = "0d6f16ed-f574-4670-9a42-7f2b3c3a3ed4"
 authors = ["Mads Koefoed <koefoedmads@gmail.com>"]
 version = "0.1.0"
 
+[deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
 [compat]
 julia = "1"
 
