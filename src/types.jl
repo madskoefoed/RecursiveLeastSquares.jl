@@ -83,5 +83,3 @@ mutable struct KRLS{T <: AbstractFloat} <: Model
     #    new(λ, budget, forgetting)
     #end
 end
-
-KRLS() = 

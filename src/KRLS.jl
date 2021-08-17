@@ -1,7 +1,7 @@
 """
     KRLS(y, x, K, M, λ, s2n, forgetting)
 
-Estimation a Kernel Recursive Least Square (Tracker) with a fixed budget size.
+Kernel Recursive Least Squares (Tracker) algorithm with a fixed budget size via growing and pruning.
 
 # Arguments
 - `y::FIVector`
@@ -45,7 +45,7 @@ function KRLS(y::FIVector,
     s0d = 1.0
     s02 = s0n / s0d
     σ²[1] = s02 * s2n              # predictive variance at time 1
-    budget = 1
+    m = 1
 
     for t in 2:T
         # Forget
@@ -143,7 +143,4 @@ function forget!(μ, Σ, λ, kb, forgetting)
     end
 end
 
-function predictive_mean(μ::Vector, Q::Matrix, x::FIMatrix, xb::FIMatrix, K::Kernel)
-    ȳ = kernel(xb, x, K)' * Q * μ
-    return ȳ
-end
+predict(μ::Vector, Q::Matrix, x::FIMatrix, xb::FIMatrix, K::Kernel) = kernel(xb, x, K)' * Q * μ

@@ -1,4 +1,4 @@
-M = 7;
+M = 6;
 c = 1e-5;
 λ = 0.99
 
@@ -14,7 +14,7 @@ X = collect(range(0, 10, length = 301));
 Y = f(X);
 
 # Kernel
-k_krls = RBF(1, 1);
+k_krls = RBF(10, 1);
 #k_gp   = RBF(2, 1);
 
 #m_rls  = RLS(y, x, λ);
@@ -27,5 +27,5 @@ scatter!(x, y, label = "Observations", color = "red")
 plot!(x, m_krls.predictions, label = "KRLS", color = "green")
 scatter!(x[m_krls.basis], y[m_krls.basis], label = "Dictionary", color = "blue")
 
-ŷ = predictive_mean(m_krls.μ, m_krls.Q, reshape(X, :, 1), m_krls.xb, RBF(1, 1))
+ŷ = predictive_mean(m_krls.μ, m_krls.Q, reshape(X, :, 1), m_krls.xb, k_krls)
 plot!(X, ŷ, label = "Prediction", color = "pink")
