@@ -1,11 +1,29 @@
+"""
+    KRLS(y, x, K, M, λ, s2n, forgetting)
+
+Estimation a Kernel Recursive Least Square (Tracker) with a fixed budget size.
+
+# Arguments
+- `y::FIVector`
+- `x::FIMatrix`
+- `K::Kernel`
+- `M::Integer`
+- `λ::FI = 1`
+- `s2n::FI = 1`
+- `forgetting::String = "B2P"`
+
+# Examples
+```julia
+2 + 3
+```
+"""
 function KRLS(y::FIVector,
               x::FIMatrix,
-              kernel_struct::Kernel,
+              K::Kernel,
               M::Integer = size(y),
               λ::FI = 1,
               s2n::FI = 1,
-              forgetting::String = "B2P",
-              jitter::AbstractFloat = 1e-8)
+              forgetting::String = "B2P")
 
     @assert s2n > 0 "Observation noise (regularization), s2n, must be strictly positive."
     @assert λ <= 1 && λ > 0 "Forgetting factor, λ, must be ]0;1]."
@@ -19,7 +37,7 @@ function KRLS(y::FIVector,
     xb = x[basis, :]
 
     # Initialization
-    ktt = kernel(x[1:1, :], kernel_struct)[1] + jitter
+    ktt = kernel(x[1:1, :], K)[1] + eps()
     μ = [y[1] * ktt]  / (s2n + ktt) # predictive mean at time 1
     Σ = ktt - ktt^2 / (s2n + ktt)
     Q = reshape([1/ktt], 1, 1)
@@ -27,26 +45,25 @@ function KRLS(y::FIVector,
     s0d = 1.0
     s02 = s0n / s0d
     σ²[1] = s02 * s2n              # predictive variance at time 1
-    m = 1
+    budget = 1
 
     for t in 2:T
-        #println("Iter: ", t)
         # Forget
-        forget!(μ, Σ, λ, kernel(xb, kernel_struct), forgetting)
+        forget!(μ, Σ, λ, kernel(xb, K), forgetting)
 
-        ktt = kernel(x[t:t, :], kernel_struct)[1] + jitter
-        kbt = kernel(xb, x[t:t, :], kernel_struct)
+        ktt = kernel(x[t:t, :], K)[1] + eps()
+        kbt = kernel(xb, x[t:t, :], K)
 
         q = vec(Q * kbt)
         h = vec(Σ * q)
 
         # Projection uncertainty
         γ² = ktt - dot(kbt, q)
-        #γ² < 0.0 && (γ² = jitter) # Ensure that gamma squared is not negative
+        #γ² < 0.0 && (γ² = eps()) # Ensure that gamma squared is not negative
         
         # Noiseless prediction variance
         s2f = γ² + dot(q, h)
-        #s2f < 0.0 && (s2f = jitter) # Ensure that s2f is not negative
+        #s2f < 0.0 && (s2f = eps()) # Ensure that s2f is not negative
 
         # Predictive mean
         ȳ = dot(q, μ)
@@ -103,24 +120,18 @@ function KRLS(y::FIVector,
                 basis = basis[d]
             end
         end
-
-        if t == T
-            #println(kernel(xb, x[t:t, :], kernel_struct))
-            #println("Mu: ", ȳ)
-        end
     end
     return (predictions = ŷ, variances = σ², basis = basis, xb = xb, μ = μ, Σ = Σ, Q = Q)
 end
 
 function KRLS(y::FIVector,
               x::FIVector,
-              kernel_struct::Kernel,
+              K::Kernel,
               M::Integer = size(y),
               λ::FI = 1,
               s2n::FI = 1,
-              forgetting::String = "B2P",
-              jitter::AbstractFloat = 1e-8)
-    KRLS(y, reshape(x, :, 1), kernel_struct, M, λ, s2n, forgetting, jitter)
+              forgetting::String = "B2P")
+    KRLS(y, reshape(x, :, 1), K, M, λ, s2n, forgetting)
 end
 
 function forget!(μ, Σ, λ, kb, forgetting)
@@ -132,7 +143,7 @@ function forget!(μ, Σ, λ, kb, forgetting)
     end
 end
 
-function predictive_mean(μ::Vector, Q::Matrix, x::FIMatrix, xb::FIMatrix, kernel_struct::Kernel)
-    ȳ = kernel(xb, x, kernel_struct)' * Q * μ
+function predictive_mean(μ::Vector, Q::Matrix, x::FIMatrix, xb::FIMatrix, K::Kernel)
+    ȳ = kernel(xb, x, K)' * Q * μ
     return ȳ
 end
