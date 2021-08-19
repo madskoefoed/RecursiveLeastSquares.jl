@@ -3,7 +3,7 @@ module RecursiveLeastSquares
 using LinearAlgebra
 using Distributions
 
-const FI = Union{Integer, AbstractFloat}
+const Fl = AbstractFloat
 const FIVector{T<:FI} = Vector{T}
 const FIMatrix{T<:FI} = Matrix{T}
 
