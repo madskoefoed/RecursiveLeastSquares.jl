@@ -1,10 +1,10 @@
-function kernel(x::FIMatrix, x₀::FIMatrix, kernel_struct::Kernel)
+function kernel(x::REALMAT, x₀::REALMAT, kernel_struct::Kernel)
     @assert size(x, 2) == size(x₀, 2) "The number of columns of x and x₀ do not match."
     # Dispatch to kernel
     K = kernel_calculation(x, x₀, kernel_struct::Kernel)
     return K
 end
-kernel(x::FIMatrix, kernel_struct::Kernel) = kernel(x, x, kernel_struct)
+kernel(x::REALMAT, kernel_struct::Kernel) = kernel(x, x, kernel_struct)
 
 # Linear
 function kernel_calculation(x, x₀, k::Linear)

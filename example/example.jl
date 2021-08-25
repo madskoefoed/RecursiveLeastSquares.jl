@@ -27,5 +27,5 @@ scatter!(x, y, label = "Observations", color = "red")
 plot!(x, m_krls.predictions, label = "KRLS", color = "green")
 scatter!(x[m_krls.basis], y[m_krls.basis], label = "Dictionary", color = "blue")
 
-ŷ = predictive_mean(m_krls.μ, m_krls.Q, reshape(X, :, 1), m_krls.xb, k_krls)
+ŷ = predict(m_krls.μ, m_krls.Q, reshape(X, :, 1), m_krls.xb, k_krls)
 plot!(X, ŷ, label = "Prediction", color = "pink")

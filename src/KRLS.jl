@@ -1,15 +1,15 @@
 """
     KRLS(y, x, K, M, λ, s2n, forgetting)
 
-Kernel Recursive Least Squares (Tracker) algorithm with a fixed budget size via growing and pruning.
+Kernel Recursive Least Squares (Tracker) algorithm with a AFxed budget size via growing and pruning.
 
 # Arguments
-- `y::FIVector`
-- `x::FIMatrix`
+- `y::REALVEC`
+- `x::REALMAT`
 - `K::Kernel`
 - `M::Integer`
-- `λ::FI = 1`
-- `s2n::FI = 1`
+- `λ::Real = 1`
+- `s2n::Real = 1`
 - `forgetting::String = "B2P"`
 
 # Examples
@@ -17,12 +17,12 @@ Kernel Recursive Least Squares (Tracker) algorithm with a fixed budget size via 
 2 + 3
 ```
 """
-function KRLS(y::FIVector,
-              x::FIMatrix,
+function KRLS(y::REALVEC,
+              x::REALMAT,
               K::Kernel,
               M::Integer = size(y),
-              λ::FI = 1,
-              s2n::FI = 1,
+              λ::Real = 1,
+              s2n::Real = 1,
               forgetting::String = "B2P")
 
     @assert s2n > 0 "Observation noise (regularization), s2n, must be strictly positive."
@@ -59,6 +59,7 @@ function KRLS(y::FIVector,
 
         # Projection uncertainty
         γ² = ktt - dot(kbt, q)
+        println("gamma: $γ²")
         #γ² < 0.0 && (γ² = eps()) # Ensure that gamma squared is not negative
         
         # Noiseless prediction variance
@@ -124,12 +125,12 @@ function KRLS(y::FIVector,
     return (predictions = ŷ, variances = σ², basis = basis, xb = xb, μ = μ, Σ = Σ, Q = Q)
 end
 
-function KRLS(y::FIVector,
-              x::FIVector,
+function KRLS(y::REALVEC,
+              x::REALVEC,
               K::Kernel,
               M::Integer = size(y),
-              λ::FI = 1,
-              s2n::FI = 1,
+              λ::Real = 1,
+              s2n::Real = 1,
               forgetting::String = "B2P")
     KRLS(y, reshape(x, :, 1), K, M, λ, s2n, forgetting)
 end
@@ -143,4 +144,4 @@ function forget!(μ, Σ, λ, kb, forgetting)
     end
 end
 
-predict(μ::Vector, Q::Matrix, x::FIMatrix, xb::FIMatrix, K::Kernel) = kernel(xb, x, K)' * Q * μ
+predict(μ::Vector, Q::Matrix, x::REALMAT, xb::REALMAT, K::Kernel) = kernel(xb, x, K)' * Q * μ

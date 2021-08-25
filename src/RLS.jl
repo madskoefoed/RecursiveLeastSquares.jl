@@ -4,9 +4,9 @@
 Recursive Least Squares algorithm.
 
 # Arguments
-- `y::FIVector`
-- `x::FIMatrix`
-- `λ::FI = 1`
+- `y::REALVEC`
+- `x::REALMAT`
+- `λ::Real = 1`
 
 # Examples
 ```julia
@@ -17,9 +17,9 @@ y = x * w + randn(100) * σ
 model = RLS(y, x, 0.99)
 ```
 """
-function RLS(y::FIVector, 
-             x::FIMatrix,
-             λ::FI = 0.99)
+function RLS(y::REALVEC, 
+             x::REALMAT,
+             λ::Real = 0.99)
 
     @assert λ <= 1 && λ > 0 "Forgetting factor, λ, must be ]0;1]."
 
@@ -41,9 +41,9 @@ function RLS(y::FIVector,
     return (predictions = μ, coefficients = w, covariance = P)
 end
 
-function RLS(y::FIVector,
-             x::FIVector,
-             λ::FI = 0.99)
+function RLS(y::REALVEC,
+             x::REALVEC,
+             λ::Real = 0.99)
     RLS(y, reshape(x, :, 1), λ)
 end
 
@@ -59,5 +59,5 @@ function update(y, x, w, P, μ, λ)
     return (w, P)
 end
 
-predict(x::FIMatrix, w::Vector{<:AbstractFloat}) = x * w
-predict(x::FIVector, w::Vector{<:AbstractFloat}) = dot(x, w)
+predict(x::REALMAT, w::Vector{<:AbstractFloat}) = x * w
+predict(x::REALVEC, w::Vector{<:AbstractFloat}) = dot(x, w)

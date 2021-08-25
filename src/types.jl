@@ -1,17 +1,17 @@
 abstract type Kernel end
 
 mutable struct Linear <: Kernel
-    σ::FI
-    function Linear(σ::FI)
+    σ::Real
+    function Linear(σ::Real)
         @assert σ > 0 "The output variance, σ, must be positive."
         new(σ)
     end
 end
 
 mutable struct RBF <: Kernel
-    l::FI
-    σ::FI
-    function RBF(l::FI, σ::FI)
+    l::Real
+    σ::Real
+    function RBF(l::Real, σ::Real)
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
         new(l, σ)
@@ -19,10 +19,10 @@ mutable struct RBF <: Kernel
 end
 
 mutable struct RationalQuadratic <: Kernel
-    a::FI
-    l::FI
-    σ::FI
-    function RationalQuadratic(a::FI, l::FI, σ::FI)
+    a::Real
+    l::Real
+    σ::Real
+    function RationalQuadratic(a::Real, l::Real, σ::Real)
         @assert a > 0 "The relative weighting of different lengthscales, a, must be positive."
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
@@ -31,10 +31,10 @@ mutable struct RationalQuadratic <: Kernel
 end
 
 mutable struct Periodic <: Kernel
-    p::FI
-    l::FI
-    σ::FI
-    function Periodic(p::FI, l::FI, σ::FI)
+    p::Real
+    l::Real
+    σ::Real
+    function Periodic(p::Real, l::Real, σ::Real)
         @assert p > 0 "The period, p, must be positive."
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
@@ -43,10 +43,10 @@ mutable struct Periodic <: Kernel
 end
 
 mutable struct LocallyPeriodic <: Kernel
-    p::FI
-    l::FI
-    σ::FI
-    function LocallyPeriodic(p::FI, l::FI, σ::FI)
+    p::Real
+    l::Real
+    σ::Real
+    function LocallyPeriodic(p::Real, l::Real, σ::Real)
         @assert p > 0 "The period, p, must be positive."
         @assert σ > 0 "The output variance, σ, must be positive."
         @assert l > 0 "The lengthscale, l, must be positive."
@@ -59,16 +59,16 @@ abstract type Model end
 mutable struct RLS{T <: AbstractFloat} <: Model
     y::Vector{T}
     w::Vector{T}
-    λ::FI
+    λ::Real
     ŷ::Vector{T}
     σ::Vector{T}
 end
 
 mutable struct KRLS{T <: AbstractFloat} <: Model
-    y::FIVector
-    x::FIMatrix
+    y::REALVEC
+    x::REALMAT
     kernel::Kernel
-    λ::FI
+    λ::Real
     budget::Integer
     mode::String
     μ::Vector{T}
@@ -76,7 +76,7 @@ mutable struct KRLS{T <: AbstractFloat} <: Model
     Q::Matrix{T}
     ŷ::Vector{T}
     σ::Vector{T}
-    #function KRLS(λ::FI, budget::Integer, forgetting::String)
+    #function KRLS(λ::Real, budget::Integer, forgetting::String)
     #    @assert λ <= 1 && λ > 0 "Forgetting factor, λ, must be ]0;1]."
     #    @assert budget > 0 "Budget size must be a positive integer."
     #    @assert (forgetting == "B2P" || forgetting == "UI") "Forgetting mode must be either B2P (back 2 prior) or UI (uncertainty injection)."

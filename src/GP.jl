@@ -1,8 +1,8 @@
-function GP(y::FIVector,
-            x::FIMatrix,
-            z::FIMatrix,
+function GP(y::REALVEC,
+            x::REALMAT,
+            z::REALMAT,
             kernel_struct::Kernel,
-            s2n::FI)
+            s2n::Real)
 
     @assert s2n > 0 "Output noise, s2n, must be positive."
     T, D = size(x)
@@ -24,10 +24,10 @@ function GP(y::FIVector,
     return (predictions = μ, variances = diag(Σ), loglikelihood = LL)
 end
 
-function GP(y::FIVector,
-            x::FIVector,
-            z::FIVector,
+function GP(y::REALVEC,
+            x::REALVEC,
+            z::REALVEC,
             kernel_struct::Kernel,
-            s2n::FI = 1.0)
+            s2n::Real = 1.0)
     GP(y, reshape(x, :, 1), reshape(z, :, 1), kernel_struct, s2n)
 end
