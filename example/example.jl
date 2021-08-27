@@ -14,12 +14,12 @@ X = collect(range(0, 10, length = 301));
 Y = f(X);
 
 # Kernel
-k_krls = RBF(10, 1);
-#k_gp   = RBF(2, 1);
+K = RBF(10, 1);
 
 #m_rls  = RLS(y, x, λ);
-m_krls = KRLS(y, x, k_krls, M, λ, c, "B2P");
-#m_gp   = GP(y, x, x, k_gp, c);
+m_krls = KRLS(y, x, K, M, λ, c, "B2P");
+#m_gp   = GP(y, x, x, K, c);
+m_rgp = RGP(y, x, K, M, c);
 
 using Plots
 plot(X, Y, label = "f(x)", color = "black", legend = :topleft)
